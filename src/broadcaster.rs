@@ -1,22 +1,53 @@
 use actix_web::web::{Bytes, Data};
 use actix_web::Error;
 
+use actix_ws::{Closed, Session};
 use futures::Stream;
 use std::pin::Pin;
+use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 use std::sync::Mutex;
 use std::task::{Context, Poll};
 use std::time::Duration;
 
+use crate::HttpMode;
+
+#[derive(Clone)]
+pub enum LineSender {
+    Sse(Sender<Bytes>),
+    Ws(Session),
+}
+
+pub enum LineSendError {
+    Sse(SendError<Bytes>),
+    Ws(Closed),
+}
+
+impl LineSender {
+    async fn try_send(&self, text: String) -> Result<(), LineSendError> {
+        match &self {
+            LineSender::Sse(sender) => sender
+                .send(Bytes::from(text))
+                .await
+                .map_err(|e| LineSendError::Sse(e)),
+            LineSender::Ws(session) => {
+                let mut session = session.clone();
+                session.text(text).await.map_err(|e| LineSendError::Ws(e))
+            }
+        }
+    }
+}
+
 pub struct Broadcaster {
-    clients: Vec<Sender<Bytes>>,
+    clients: Vec<LineSender>,
+    mode: HttpMode,
 }
 
 impl Broadcaster {
-    pub fn create() -> Data<Mutex<Self>> {
+    pub fn create(mode: HttpMode) -> Data<Mutex<Self>> {
         // Data ≃ Arc
-        let me = Data::new(Mutex::new(Broadcaster::new()));
+        let me = Data::new(Mutex::new(Broadcaster::new(mode)));
 
         // ping clients every 10 seconds to see if they are alive
         Broadcaster::spawn_ping(me.clone());
@@ -24,9 +55,10 @@ impl Broadcaster {
         me
     }
 
-    fn new() -> Self {
+    fn new(mode: HttpMode) -> Self {
         Broadcaster {
             clients: Vec::new(),
+            mode,
         }
     }
 
@@ -36,18 +68,28 @@ impl Broadcaster {
             loop {
                 wait.tick().await;
                 let mut me = me.lock().unwrap();
-                println!("Listeners: {}", me.clients.len());
-                me.remove_stale_clients();
+                log::trace!("Listeners: {}", me.clients.len());
+                me.remove_stale_clients().await;
             }
         };
 
         actix_web::rt::spawn(task);
     }
 
-    fn remove_stale_clients(&mut self) {
-        let mut ok_clients = Vec::new();
+    async fn remove_stale_clients(&mut self) {
+        let mut ok_clients: Vec<LineSender> = Vec::new();
         for client in self.clients.iter() {
-            let result = client.clone().try_send(Bytes::from("data: ping\n\n"));
+            let result = match &client {
+                LineSender::Sse(client) => client
+                    .clone()
+                    .send(Bytes::from("data: ping\n\n"))
+                    .await
+                    .map_err(|e| LineSendError::Sse(e)),
+                LineSender::Ws(session) => {
+                    let mut session = session.clone();
+                    session.ping(b"").await.map_err(|e| LineSendError::Ws(e))
+                }
+            };
 
             if let Ok(()) = result {
                 ok_clients.push(client.clone());
@@ -56,24 +98,30 @@ impl Broadcaster {
         self.clients = ok_clients;
     }
 
-    pub fn new_client(&mut self) -> Client {
+    pub fn new_sse_client(&mut self) -> Client {
         let (tx, rx) = channel(100);
 
         tx.clone()
             .try_send(Bytes::from("data: connected\n\n"))
             .unwrap();
 
-        self.clients.push(tx);
+        self.clients.push(LineSender::Sse(tx));
         Client(rx)
     }
 
-    pub fn send(&self, msg: &str) {
-        let msg = Bytes::from(["data: ", msg, "\n\n"].concat());
+    pub fn add_ws_client(&mut self, session: Session) {
+        self.clients.push(LineSender::Ws(session));
+    }
 
-        println!("Send: {:?}", msg);
+    pub async fn send(&self, msg: &str) {
+        let msg = match self.mode {
+            HttpMode::Ws => msg.to_string(),
+            HttpMode::Sse => ["data: ", msg, "\n\n"].concat(),
+        };
+        log::trace!("Send: {:?}", msg);
 
         for client in self.clients.iter() {
-            client.clone().try_send(msg.clone()).unwrap_or(());
+            client.clone().try_send(msg.clone()).await.unwrap_or(());
         }
     }
 }
