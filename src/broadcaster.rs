@@ -9,22 +9,24 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
 
 use std::task::{Context, Poll};
-use std::time::Duration;
 
 use crate::HttpMode;
 
+/// Generic sender for new lines
 #[derive(Clone)]
 pub enum LineSender {
     Sse(Sender<Bytes>),
     Ws(Session),
 }
 
+/// Errors encountered in broadcasting lines
 pub enum LineSendError {
     Sse(SendError<Bytes>),
     Ws(Closed),
 }
 
 impl LineSender {
+    /// Try send some text to sender
     async fn try_send(&self, text: String) -> Result<(), LineSendError> {
         match &self {
             LineSender::Sse(sender) => sender
@@ -39,20 +41,21 @@ impl LineSender {
     }
 }
 
+/// Handles broadcasting for all modes
 pub struct Broadcaster {
     clients: Vec<LineSender>,
     mode: HttpMode,
 }
 
 impl Broadcaster {
+    /// Build [Data] ready instance of broadcaster
     pub fn create(mode: HttpMode) -> Data<Mutex<Self>> {
-        // Data ≃ Arc
-        let me = Data::new(Mutex::new(Broadcaster::new(mode)));
+        Data::new(Mutex::new(Broadcaster::new(mode)))
+    }
 
-        // ping clients every 10 seconds to see if they are alive
-        Broadcaster::spawn_ping(me.clone());
-
-        me
+    /// Get the length of cliets
+    pub fn clients_len(&self) -> usize {
+        self.clients.len()
     }
 
     fn new(mode: HttpMode) -> Self {
@@ -61,22 +64,8 @@ impl Broadcaster {
             mode,
         }
     }
-
-    fn spawn_ping(me: Data<Mutex<Self>>) {
-        let task = async move {
-            let mut wait = tokio::time::interval(Duration::from_secs(10));
-            loop {
-                wait.tick().await;
-                let mut me = me.lock().await;
-                log::trace!("Listeners: {}", me.clients.len());
-                me.remove_stale_clients().await;
-            }
-        };
-
-        actix_web::rt::spawn(task);
-    }
-
-    async fn remove_stale_clients(&mut self) {
+    /// Remove clients that have not responded to a ping
+    pub async fn remove_stale_clients(&mut self) -> bool {
         let mut ok_clients: Vec<LineSender> = Vec::new();
         for client in self.clients.iter() {
             let result = match &client {
@@ -96,8 +85,10 @@ impl Broadcaster {
             }
         }
         self.clients = ok_clients;
+        true
     }
 
+    /// Create a new Sse [Client]
     pub fn new_sse_client(&mut self) -> Client {
         let (tx, rx) = channel(100);
 
@@ -107,16 +98,18 @@ impl Broadcaster {
         Client(rx)
     }
 
+    /// Add Websocket client
     pub fn add_ws_client(&mut self, session: Session) {
         self.clients.push(LineSender::Ws(session));
     }
 
+    /// Send some text to all members
     pub async fn send(&self, msg: &str) {
         let msg = match self.mode {
             HttpMode::Ws => msg.to_string(),
             HttpMode::Sse => ["data: ", msg, "\n\n"].concat(),
         };
-        log::trace!("Send: {:?}", msg);
+        log::trace!("Sending to all: {:?}", msg);
 
         for client in self.clients.iter() {
             client.clone().try_send(msg.clone()).await.unwrap_or(());
@@ -124,7 +117,7 @@ impl Broadcaster {
     }
 }
 
-// wrap Receiver in own type, with correct error type
+// wrap Receiver in own type
 pub struct Client(Receiver<Bytes>);
 
 impl Stream for Client {
