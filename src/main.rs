@@ -1,6 +1,6 @@
 mod broadcaster;
 mod command;
-use std::time::Duration;
+use std::{io::Write, time::Duration};
 
 use tokio::sync::Mutex;
 
@@ -82,9 +82,9 @@ async fn ws(
                     }
                 }
                 Message::Text(s) => {
-                    log::trace!("Got text, {}", s);
-                    // let mut stdout = io::stdout().lock();
-                    // stdout.write_all(s)?;
+                    log::trace!("Received for ws {}", s);
+                    let stdout = std::io::stdout();
+                    stdout.lock().write_all(s.as_bytes()).unwrap();
                 }
                 _ => break,
             }

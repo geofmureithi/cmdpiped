@@ -93,10 +93,11 @@ for ((COUNT = 1; COUNT <= 100; COUNT++)); do
 done
 ```
 
-Save the file as `index.js` and run the `cmdpiped`
+Save the file as `script.sh` and run the `cmdpiped`
 
 ```
-$ cmdpiped -m sse node ./index.js
+$ chmod +x ./script.sh
+$ cmdpiped -m sse ./script.sh
 ```
 
 </details>
@@ -148,6 +149,12 @@ $ cmdpiped -m sse --serve ./static
 A complete example is available in the [examples](./examples/monitor/)
 
 ![Complete Example](./examples/monitor/Screenshot.png)
+
+## Roadmap
+
+- [x] SSE Streaming
+- [x] Websocket Server -> Client
+- [ ] Websocket Client -> Server
 
 ## Versioning
 
