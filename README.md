@@ -89,6 +89,12 @@ Run `cmdpiped` exposing a directory
 $ cmdpiped -m sse --serve ./static
 ```
 
+### A complete example
+
+A complete example is available in the [examples](./examples/monitor/script.sh)
+
+![Complete Example](./examples/monitor/Screenshot.png)
+
 ## Versioning
 
 We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/geofmureithi/cmdpiped/tags).

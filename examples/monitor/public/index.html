@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+  <head> </head>
+  <body>
+    <script src="https://unpkg.com/tailwindcss-jit-cdn"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/smoothie/1.34.0/smoothie.js"
+      integrity="sha512-/qk9GnlrCEpQbrD83pVgS6EdtJfmbrHkE06thvSxHQUqG5z0a4mnDpBPBaU8MFOBoTVvAYROmUx3GbJ0hi4ayQ=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <section
+      class="flex flex-col justify-center antialiased bg-gray-100 text-gray-600 min-h-screen"
+    >
+      <div class="max-w-3xl mx-auto p-4 sm:px-6 h-full">
+        <div
+          class="flex flex-col col-span-full xl:col-span-8 bg-white shadow-lg rounded-sm border border-gray-200"
+        >
+          <header class="px-5 py-4 border-b border-gray-100 flex items-center">
+            <h2 class="font-semibold text-gray-800">Server Metrics</h2>
+          </header>
+          <div class="px-5 py-1">
+            <div class="flex flex-wrap">
+              <!-- Unique Visitors -->
+              <div class="flex items-center py-2">
+                <div class="mr-5">
+                  <div class="flex items-center">
+                    <div
+                      class="text-3xl font-bold text-gray-800 mr-2"
+                      id="cpuUsage"
+                    >
+                      0%
+                    </div>
+                    <div class="text-sm font-medium text-green-500">+49%</div>
+                  </div>
+                  <div class="text-sm text-gray-500">CPU Usage</div>
+                </div>
+                <div
+                  class="hidden md:block w-px h-8 bg-gray-200 mr-5"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <!-- Total Pageviews -->
+              <div class="flex items-center py-2">
+                <div class="mr-5">
+                  <div class="flex items-center">
+                    <div
+                      class="text-3xl font-bold text-gray-800 mr-2"
+                      id="memoryUsage"
+                    >
+                      56.9K
+                    </div>
+                    <div class="text-sm font-medium text-green-500">+7%</div>
+                  </div>
+                  <div class="text-sm text-gray-500">Memory</div>
+                </div>
+                <div
+                  class="hidden md:block w-px h-8 bg-gray-200 mr-5"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <!-- Bounce Rate -->
+              <div class="flex items-center py-2">
+                <div class="mr-5">
+                  <div class="flex items-center">
+                    <div
+                      class="text-3xl font-bold text-gray-800 mr-2"
+                      id="processesUsage"
+                    >
+                      54
+                    </div>
+                    <div class="text-sm font-medium text-yellow-500">-7%</div>
+                  </div>
+                  <div class="text-sm text-gray-500">Processes</div>
+                </div>
+                <div
+                  class="hidden md:block w-px h-8 bg-gray-200 mr-5"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <!-- Visit Duration-->
+              <div class="flex items-center">
+                <div>
+                  <div class="flex items-center">
+                    <div class="text-3xl font-bold text-gray-800 mr-2">200</div>
+                    <div class="text-sm font-medium text-yellow-500">+7%</div>
+                  </div>
+                  <div class="text-sm text-gray-500">Threads</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Chart built with Chart.js 3 -->
+          <div class="p-2">
+            <div class="row">
+              <div class="container">
+                <div class="col-md-6">
+                  <h1 class="font-bold">Cpu</h1>
+                  <canvas id="cpu" width="600" height="100"></canvas>
+                </div>
+                <div class="col-md-6">
+                  <h1 class="font-bold">Memory</h1>
+                  <canvas id="memory" width="600" height="100"></canvas>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h1 class="font-bold">Processes</h1>
+                <canvas id="processes" width="600" height="100"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div id="content"></div>
+    <script type="text/javascript">
+      const cpu = new TimeSeries();
+      const memory = new TimeSeries();
+      const processes = new TimeSeries();
+      const source = new EventSource("http://localhost:9000/events");
+      source.onmessage = function (event) {
+        if (event.data == "ping" || event.data == "connected") return;
+        const data = JSON.parse(event.data);
+        cpu.append(Date.now(), parseInt(data.cpu));
+        document.getElementById("cpuUsage").innerHTML = data.cpu + "%";
+        memory.append(Date.now(), parseInt(data.memory));
+        document.getElementById("memoryUsage").innerHTML = data.memory;
+        processes.append(Date.now(), parseInt(data.processes));
+        document.getElementById("processesUsage").innerHTML = data.processes;
+      };
+      // Create a time series
+
+      // Find the canvas
+      function createCharts() {
+        const cpu_chart = new SmoothieChart();
+        cpu_chart.addTimeSeries(cpu, {
+          strokeStyle: "rgba(0, 255, 0, 1)",
+          fillStyle: "rgba(0, 255, 0, 0.2)",
+          lineWidth: 4,
+        });
+        cpu_chart.streamTo(document.getElementById("cpu"), 1000);
+
+        const memory_chart = new SmoothieChart();
+        memory_chart.addTimeSeries(memory, {
+          strokeStyle: "rgb(255, 0, 255)",
+          fillStyle: "rgba(255, 0, 255, 0.3)",
+          lineWidth: 3,
+        });
+        memory_chart.streamTo(document.getElementById("memory"), 1000);
+
+        const ps_chart = new SmoothieChart();
+        ps_chart.addTimeSeries(processes, {
+          strokeStyle: "rgba(0, 255, 0, 1)",
+          fillStyle: "rgba(0, 255, 0, 0.2)",
+          lineWidth: 4,
+        });
+        ps_chart.streamTo(document.getElementById("processes"), 1000);
+      }
+      createCharts();
+    </script>
+  </body>
+</html>
