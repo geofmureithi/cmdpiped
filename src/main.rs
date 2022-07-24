@@ -101,8 +101,6 @@ async fn main() -> std::io::Result<()> {
     let args = Args::parse();
     let mode = args.mode.clone();
     let broadcaster = Broadcaster::create(mode);
-
-    println!("{:?}", args);
     let command = &args.command;
     let runner = async {
         match command {

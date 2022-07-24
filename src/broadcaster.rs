@@ -30,10 +30,10 @@ impl LineSender {
             LineSender::Sse(sender) => sender
                 .send(Bytes::from(text))
                 .await
-                .map_err(|e| LineSendError::Sse(e)),
+                .map_err(LineSendError::Sse),
             LineSender::Ws(session) => {
                 let mut session = session.clone();
-                session.text(text).await.map_err(|e| LineSendError::Ws(e))
+                session.text(text).await.map_err(LineSendError::Ws)
             }
         }
     }
@@ -84,10 +84,10 @@ impl Broadcaster {
                     .clone()
                     .send(Bytes::from("data: ping\n\n"))
                     .await
-                    .map_err(|e| LineSendError::Sse(e)),
+                    .map_err(LineSendError::Sse),
                 LineSender::Ws(session) => {
                     let mut session = session.clone();
-                    session.ping(b"").await.map_err(|e| LineSendError::Ws(e))
+                    session.ping(b"").await.map_err(LineSendError::Ws)
                 }
             };
 
@@ -101,9 +101,7 @@ impl Broadcaster {
     pub fn new_sse_client(&mut self) -> Client {
         let (tx, rx) = channel(100);
 
-        tx.clone()
-            .try_send(Bytes::from("data: connected\n\n"))
-            .unwrap();
+        tx.try_send(Bytes::from("data: connected\n\n")).unwrap();
 
         self.clients.push(LineSender::Sse(tx));
         Client(rx)

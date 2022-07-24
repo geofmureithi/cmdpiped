@@ -2,6 +2,16 @@
 
 `cmdpiped` is a command-line tool for exposing a wrapped cli program's standard IO to WebSockets/SSE
 
+## Installation
+
+Ready to use Binaries are available at the releases page.
+
+For Rust users, you can always use cargo
+
+```
+cargo install cmdpiped
+```
+
 ## Usage
 
 ```
@@ -18,11 +28,20 @@ OPTIONS:
     -V, --version          Print version information
 ```
 
+You can also use piping
+
+```
+$ node ./index.js | cmdpiped -m sse
+```
+
 ## Examples
 
-### Basic Example
+### Some Basic Examples
 
-Lets start with a simple python application.
+`cmdpiped` is language agnostic and should be able to plugin easily for anything that can run on the command line.
+
+<details>
+  <summary>Python</summary>
 
 ```py
 from sys import stdout
@@ -35,17 +54,52 @@ for count in range(0, 100):
   sleep(1)
 ```
 
-Save the file and run the `cmdpiped`
+Save the file as `counter.py` and run the `cmdpiped`
 
 ```
 $ cmdpiped -m sse python3 ./counter.py
 ```
 
-Or
+</details>
+<details>
+  <summary>Node.js</summary>
+
+```js
+let count = 0;
+
+setInterval(() => {
+  console.log(count++);
+}, 1000);
+```
+
+Save the file as `index.js` and run the `cmdpiped`
 
 ```
-$ python3 ./counter.py | cmdpiped -m sse
+$ cmdpiped -m sse node ./index.js
 ```
+
+</details>
+
+<details>
+  <summary>Bash</summary>
+
+```sh
+#!/bin/bash
+
+# Count from 1 to 100 with a sleep of 1 second
+for ((COUNT = 1; COUNT <= 100; COUNT++)); do
+  echo $COUNT
+  sleep 1
+done
+```
+
+Save the file as `index.js` and run the `cmdpiped`
+
+```
+$ cmdpiped -m sse node ./index.js
+```
+
+</details>
 
 You should be able to get:
 
