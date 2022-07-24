@@ -65,7 +65,7 @@ Using the above example, we can add some frontend code
 1. Create a folder called `static`.
 2. Add an `index.html` file:
 
-```
+```html
 <!DOCTYPE html>
 <html>
   <head>
@@ -86,5 +86,19 @@ Using the above example, we can add some frontend code
 Run `cmdpiped` exposing a directory
 
 ```
-$ cmdpiped
+$ cmdpiped -m sse --serve ./static
 ```
+
+## Versioning
+
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/geofmureithi/cmdpiped/tags).
+
+## Authors
+
+- **Njuguna Mureithi** - _Initial work_ - [Njuguna Mureithi](https://github.com/geofmureithi)
+
+See also the list of [contributors](https://github.com/geofmureithi/cmdpiped/contributors) who participated in this project.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
