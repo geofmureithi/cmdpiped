@@ -23,3 +23,7 @@ clap = { version = "3", features = ["derive"] }
 actix-ws = "0.2.0"
 log = "0.4"
 env_logger = "0.9"
+
+[dev-dependencies]
+actix-test = "0.1"
+actix-web-actors = "4"
