@@ -6,8 +6,8 @@ use futures::Stream;
 use std::pin::Pin;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::Mutex;
 
-use std::sync::Mutex;
 use std::task::{Context, Poll};
 use std::time::Duration;
 
@@ -67,7 +67,7 @@ impl Broadcaster {
             let mut wait = tokio::time::interval(Duration::from_secs(10));
             loop {
                 wait.tick().await;
-                let mut me = me.lock().unwrap();
+                let mut me = me.lock().await;
                 log::trace!("Listeners: {}", me.clients.len());
                 me.remove_stale_clients().await;
             }

@@ -1,6 +1,6 @@
 mod broadcaster;
 mod command;
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 
 use broadcaster::Broadcaster;
 
@@ -21,7 +21,7 @@ pub enum HttpMode {
     Sse,
 }
 
-/// A daemon for exposing output in websockets and sse
+/// A command-line tool for exposing a wrapped cli program's standard IO to WebSockets/SSE
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 pub struct Args {
@@ -51,7 +51,7 @@ pub struct Args {
 }
 
 async fn sse(broadcaster: Data<Mutex<Broadcaster>>) -> impl Responder {
-    let rx = broadcaster.lock().unwrap().new_sse_client();
+    let rx = broadcaster.lock().await.new_sse_client();
 
     let mut res = HttpResponse::Ok()
         .append_header(("content-type", "text/event-stream"))
@@ -70,7 +70,7 @@ async fn ws(
     broadcaster: Data<Mutex<Broadcaster>>,
 ) -> impl Responder {
     let (response, mut session, mut msg_stream) = actix_ws::handle(&req, body).unwrap();
-    broadcaster.lock().unwrap().add_ws_client(session.clone());
+    broadcaster.lock().await.add_ws_client(session.clone());
 
     actix_web::rt::spawn(async move {
         while let Some(Ok(msg)) = msg_stream.next().await {

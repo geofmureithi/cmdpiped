@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 
 use actix_web::web::Data;
 use futures::StreamExt;
@@ -31,7 +31,7 @@ pub(crate) async fn execute_command(
     let mut stream = ProcessLineStream::try_from(Command::new(first).args(args.clone()))?;
     // TODO: Allow websocket input to stdin
     while let Some(item) = stream.next().await {
-        broadcaster.lock().unwrap().send(&item.to_string()).await;
+        broadcaster.lock().await.send(&item.to_string()).await;
     }
     Ok(())
 }
@@ -42,7 +42,7 @@ pub(crate) async fn pipe_stdin(broadcaster: Data<Mutex<Broadcaster>>) -> std::io
     let stdin = BufReader::new(stdin);
     let mut lines = stdin.lines();
     while let Ok(Some(line)) = lines.next_line().await {
-        broadcaster.lock().unwrap().send(&line).await;
+        broadcaster.lock().await.send(&line).await;
     }
     Ok(())
 }
