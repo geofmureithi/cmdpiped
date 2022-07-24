@@ -91,7 +91,7 @@ $ cmdpiped -m sse --serve ./static
 
 ### A complete example
 
-A complete example is available in the [examples](./examples/monitor/server.sh)
+A complete example is available in the [examples](./examples/monitor/)
 
 ![Complete Example](./examples/monitor/Screenshot.png)
 
