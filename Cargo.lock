@@ -1413,9 +1413,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-process-stream"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fbecfbb023b1dafbbbc851e13c4dc884ea8cea1efde25a359095ad1d24d0630"
+checksum = "2f09c7fc9546d3b9586bc95c58ac2bdb48b07c538a26e317b558e6de2fac98b8"
 dependencies = [
  "anyhow",
  "bytes",
