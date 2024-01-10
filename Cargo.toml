@@ -18,7 +18,7 @@ actix-web = "4"
 tokio = { version = "1", features =["process", "io-std"] }
 futures = "0.3"
 tokio-process-stream = "0.3.0"
-actix-files = "0.6.2"
+actix-files = "0.6.5"
 clap = { version = "3", features = ["derive"] }
 actix-ws = "0.2.0"
 log = "0.4"
