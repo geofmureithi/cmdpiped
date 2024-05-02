@@ -21,7 +21,7 @@ tokio-process-stream = "0.3.0"
 actix-files = "0.6.2"
 clap = { version = "3", features = ["derive"] }
 actix-ws = "0.2.0"
-log = "0.4"
+log = "0.4.21"
 env_logger = "0.9"
 
 [dev-dependencies]
